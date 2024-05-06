@@ -1,9 +1,8 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { signIn, signOut } from "@/lib/auth";
+import { signIn, signOut } from "@/lib/auth-no-edge";
 import prisma from "@/lib/db";
-import { sleep } from "@/lib/utils";
 import { authSchema, petFormSchema, petIdSchema } from "@/lib/validations";
 import { revalidatePath } from "next/cache";
 import { checkAuth, getPetById } from "@/lib/server-utils";

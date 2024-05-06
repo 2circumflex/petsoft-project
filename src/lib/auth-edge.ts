@@ -1,47 +1,10 @@
-import { authSchema } from "@/lib/validations";
-import bcrypt from "bcryptjs";
-import NextAuth, { NextAuthConfig } from "next-auth";
-import Credentials from "next-auth/providers/credentials";
-import { getUserByEmail } from "./server-utils";
-import { sleep } from "./utils";
+import { NextAuthConfig } from "next-auth";
+import prisma from "./db";
 
-const config = {
+export const nextAuthEdgeConfig = {
   pages: {
     signIn: "/login",
   },
-  providers: [
-    Credentials({
-      async authorize(credentials) {
-        // runs on login
-
-        // validation
-        const validatedFormData = authSchema.safeParse(credentials);
-        if (!validatedFormData.success) {
-          return null;
-        }
-
-        // extract values
-        const { email, password } = validatedFormData.data;
-
-        const user = await getUserByEmail(email);
-        if (!user) {
-          console.log("No user found");
-          return null;
-        }
-
-        const passwordMatch = await bcrypt.compare(
-          password,
-          user.hashedPassword
-        );
-        if (!passwordMatch) {
-          console.log("Invalid password");
-          return null;
-        }
-
-        return user;
-      },
-    }),
-  ],
   callbacks: {
     authorized: ({ auth, request }) => {
       // runs on every request with middleware
@@ -96,7 +59,11 @@ const config = {
 
       if (trigger === "update") {
         // on every request
-        const userFromDb = await getUserByEmail(token.email);
+        const userFromDb = await prisma.user.findUnique({
+          where: {
+            email: token.email,
+          },
+        });
         if (userFromDb) {
           token.hasAccess = userFromDb.hasAccess;
         }
@@ -113,11 +80,5 @@ const config = {
       return session;
     },
   },
+  providers: [],
 } satisfies NextAuthConfig;
-
-export const {
-  auth,
-  signIn,
-  signOut,
-  handlers: { GET, POST },
-} = NextAuth(config);
